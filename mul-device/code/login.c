@@ -1,8 +1,26 @@
 #include "menu.h"
 
+//打开lcd驱动
+void init_lcd()
+{
+	int fd_lcd = open(PATH_LCD, O_RDWR);
+	if (fd_lcd < 0)
+	{
+		perror("Don't open the file of lcd!\n");
+	}	
 
-// char* openfile()
+	//申请虚拟共享内存
+	share_addr = mmap(
+		NULL,
+		800*480*4,
+		PROT_READ|PROT_WRITE,
+		MAP_SHARED,
+		fd_lcd,
+		0
+		);
+}
 
+//打开触摸屏驱动
 void init_ts()
 {
 	//1.打开触摸屏的驱动文件
@@ -17,16 +35,37 @@ void init_ts()
 	// struct input_event ts;
 }
 
+//获取文本中的密码
+int get_file( char* path, char* passcode)
+{
+	int fd = open( path, O_RDWR);
+	if (fd == -1)
+	{
+		printf("打开文件失败\n");
+		return 0;
+	}
+	// printf("文件描述符为：%d\n",fd);
+
+	char temp[MAXSIZE_PS] = {0};
+
+	ssize_t ret = read( fd, temp, MAXSIZE_PS);
+	strcpy( passcode, temp);
+
+	close(fd);
+	return 1;
+}
+
+
 //图像显示
 int PicPrint(char* path, int width, int height, int x, int y)
 {
 	//1.打开lcd驱动文件
-	int fd_lcd = open(PATH_LCD, O_RDWR);
-	if (fd_lcd < 0)
-	{
-		perror("Don't open the file of lcd!\n");
-		return 0;
-	}
+	// int fd_lcd = open(PATH_LCD, O_RDWR);
+	// if (fd_lcd < 0)
+	// {
+	// 	perror("Don't open the file of lcd!\n");
+	// 	return 0;
+	// }
 
 	//2.打开bmp图片
 	int fd_bmp = open(path, O_RDWR);
@@ -36,15 +75,15 @@ int PicPrint(char* path, int width, int height, int x, int y)
 		return 0;
 	}
 
-	//3.申请虚拟共享内存
-	int* share_addr = mmap(
-		NULL,
-		height*width*4,
-		PROT_READ|PROT_WRITE,
-		MAP_SHARED,
-		fd_lcd,
-		0
-		);
+	// //3.申请虚拟共享内存
+	// share_addr = mmap(
+	// 	NULL,
+	// 	height*width*4,
+	// 	PROT_READ|PROT_WRITE,
+	// 	MAP_SHARED,
+	// 	fd_lcd,
+	// 	0
+	// 	);
 
 	//4.从bmp图片把24位的颜色数据读出来
 	char bmp_data[height*width*3];
@@ -86,8 +125,6 @@ int PicPrint(char* path, int width, int height, int x, int y)
 	}
 
 	close(fd_bmp);
-	close(fd_lcd);
-	munmap(share_addr, height*width*4);
 	return 0;
 }
 
@@ -176,19 +213,17 @@ char get_usr_input(int x, int y)
 //在随机位置显示图片
 int Show_bmp(char* path, int x, int y)
 {
-	int lcd_fd = open( PATH_LCD, O_RDWR);
+	// int lcd_fd = open( PATH_LCD, O_RDWR);
 
-	if (lcd_fd < 0)
-	{
-		perror("Don't open the file of lcd!\n");
-		return 0;
-	}
+	// if (lcd_fd < 0)
+	// {
+	// 	perror("Don't open the file of lcd!\n");
+	// 	return 0;
+	// }
 
 	int ret;
 	char head_buf[54]={0};
 	int i, j;
-
-
 
 	int bmp_fd = open( path, O_RDWR);   //打开指定路径图片
 	//判断是否打开成功
@@ -202,8 +237,13 @@ int Show_bmp(char* path, int x, int y)
 
 	int width  = head_buf[18] | head_buf[19]<<8 | head_buf[20]<<16 | head_buf[21]<<24;  //图片的宽度
 	int height = head_buf[22] | head_buf[23]<<8 | head_buf[24]<<16 | head_buf[25]<<24; //图片的高度
-	printf("width=%d\n", width);
-	printf("height=%d\n", height);
+	// printf("width=%d\n", width);
+	// printf("height=%d\n", height);
+
+	// if((width*3)%4 != 0) 
+	// {
+	// 	width = width*3 + 4 -(width*3)%4;
+	// }
 
 	int size = head_buf[5]<<24 | head_buf[4]<<16 | head_buf[3]<<8 | head_buf[2];
 	if (size > (800*480*3+54) )
@@ -211,7 +251,7 @@ int Show_bmp(char* path, int x, int y)
 		perror("图片太大，该屏幕无法装下\n");
 		return -2;
 	}
-	printf("11111\n");
+	// printf("11111\n");
 	if ((width + x) > 800 || (height + y) > 480)
 	{
 		perror("在该位置传入图片无法装下\n");
@@ -245,12 +285,12 @@ int Show_bmp(char* path, int x, int y)
 		}
 	}
 
-	int* shared_addr = mmap(
+	share_addr = mmap(
 		NULL,
 		800*480*4,
 		PROT_READ|PROT_WRITE,
 		MAP_SHARED,
-		lcd_fd,
+		fd_lcd,
 		0
 		);
 
@@ -269,23 +309,20 @@ int Show_bmp(char* path, int x, int y)
 				lcd_buf[i+(height-1-j)*width]  是倒着显示， width是它的宽度，也对应着800， 
 				刚开始是将图片最后一行的第一列的数据赋值到lcd屏幕上对应位置的第一行第一列的数。
 			*/
-			*(shared_addr + i + j*800 + x + y*800) = lcd_buf[i+(height-1-j)*width];
+			*(share_addr + i + j*800 + x + y*800) = lcd_buf[i+(height-1-j)*width];
 		}
 		// printf("77777\n");
 
 	}
 
 	close(bmp_fd);    //关闭图片
-	close(lcd_fd);
-	munmap(shared_addr, 800*480*4);
 	return 0;         //结束该函数
 }
 
 //用户点击屏幕, 获取点击坐标
 void point_ts( int* x, int* y)
 {
-	init_ts();
-
+	void init_ts();
 	while (1)
 	{
 		read(fd_ts, &ts, sizeof(ts));
@@ -311,7 +348,7 @@ void point_ts( int* x, int* y)
 	        //坐标轴效验
 	        *x = (*x)*800/1024;
 			*y = (*y)*480/614;
-			delay_ms(100);
+			// delay_ms(100);
 			printf("x = %d ,y = %d \n", *x, *y);
 			break;
 		}
@@ -321,11 +358,14 @@ void point_ts( int* x, int* y)
 
 }
 
+
+
 int login()
 {
 
 	char login_ps[MAXSIZE_PS] = {0};
-	strcpy( login_ps, "0212");
+
+	get_file( PATH_FILE_PS, login_ps);
 
 	//记录密码星号的个数
 	char* star[MAXSIZE_STAR] = {
