@@ -12,12 +12,15 @@
 #include <strings.h>
 #include <time.h>
 #include <string.h>
+#include <stdlib.h>
 #include "datastructure.h"
 
 
 
 #define MAXSIZE_STAR 5	//四位数的登录密码
 #define MAXSIZE_PS 20	//存放密码的最大长度
+
+#define PATH_FILE_PS "./passcode.txt"
 
 #define PATH_BACKGROUND "./bmp/login/background.bmp" //登录界面
 #define PATH_PS_1 "./bmp/login/ps_1.bmp"
@@ -34,7 +37,9 @@
 // struct input_event ts;
 
 extern void init_ts(); //打开触摸屏驱动文件
+extern void init_lcd(); //打开lcd驱动
 
+extern int get_file( char* path, char* passcode); //获取文本中的密码
 //图像显示
 extern int PicPrint(char* path, int width, int height, int x, int y);
 
