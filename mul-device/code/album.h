@@ -7,6 +7,10 @@
 #define PATH_ALBUM_DOC_PIXIV "./bmp/ele-album/doc_pixiv.bmp"
 #define PATH_ALBUM_DOC_WALL "./bmp/ele-album/doc_wall.bmp"
 #define PATH_ALBUM_DOC_SELECT "./bmp/ele-album/album_select.bmp"
+#define PATH_ALBUM_FUNC_SELECT_OUT "./bmp/ele-album/album_func_select_out.bmp"
+#define PATH_ALBUM_FUNC_SELECT_LEFT "./bmp/ele-album/album_func_select_left.bmp"
+#define PATH_ALBUM_FUNC_SELECT_RIGHT "./bmp/ele-album/album_func_select_right.bmp"
+
 
 #define PATH_PIC_PIXIV_1 "./bmp/ele-album/pixiv/1.bmp"
 #define PATH_PIC_PIXIV_2 "./bmp/ele-album/pixiv/2.bmp"
@@ -17,6 +21,8 @@
 #define PATH_PIC_WALL_3 "./bmp/ele-album/wallhaven/3.bmp"
 
 
+
+extern int album_OperateMenu();
 //图片从上至下显示
 extern int PicPrint_UpToBottom(char* path, int width, int height, int x, int y);
 //图片从下至上显示
